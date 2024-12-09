@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Switch Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 class="Title">IoT Switch Control</h1>
+<p class="subtitle">Toggle the switch to update the state.</p>
+
+<!-- Switch Toggle -->
+<div class="switch-container">
+    <div class="container-box">
+        <div class="switch-1">
+            <label class="switch"> 
+                <p class="switch-1">Switch 1</p>
+                <input type="checkbox" id="switch-toggle-1">
+                <span class="slider"></span>
+            </label>
+            <p class="status">Current State: <span id="state-display-1">Loading...</span></p>
+        </div>
+    </div>
+
+    <div class="switch-2">
+        <label class="switch"> 
+            <p class="switch-1">Switch 2</p>
+            <input type="checkbox" id="switch-toggle-2">
+            <span class="slider"></span>
+        </label>
+        <p class="status">Current State: <span id="state-display-2">Loading...</span></p>
+    </div>
+
+    <div class="switch-3">
+        <p class="switch-1">Switch 3</p>
+        <label class="switch">
+            <input type="checkbox" id="switch-toggle-3">
+            <span class="slider"></span>
+        </label>
+        <p class="status">Current State: <span id="state-display-3">Loading...</span></p>
+    </div>
+</div>
+
+<script>
+// Function to fetch the current state from the server
+async function fetchState() {
+    try {
+        const response = await fetch('/get_state'); // Fetch state from server
+        const data = await response.json(); // Parse JSON response
+
+        // Loop through switches 1, 2, and 3
+        for (let i = 1; i <= 3; i++) {
+            const switchState = data[`switch-${i}`]; // State of current switch
+            const stateDisplay = document.getElementById(`state-display-${i}`);
+            const switchToggle = document.getElementById(`switch-toggle-${i}`);
+
+            if (stateDisplay && switchToggle) {
+                stateDisplay.textContent = switchState; // Update display
+                switchToggle.checked = switchState === 'on'; // Update toggle
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching initial state:', error);
+
+        // Handle error for all switches
+        for (let i = 1; i <= 3; i++) {
+            const stateDisplay = document.getElementById(`state-display-${i}`);
+            if (stateDisplay) {
+                stateDisplay.textContent = 'Error fetching state';
+            }
+        }
+    }
+}
+
+// Function to send updated state to the server
+async function updateState(switchId, newState) {
+    try {
+        const response = await fetch('/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ switch_id: switchId, state: newState }),
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            console.log(`Switch ${switchId} state updated successfully:`, data.switch_state);
+            const stateDisplay = document.getElementById(`state-display-${switchId}`);
+            stateDisplay.textContent = data.switch_state;
+        } else {
+            console.error('Error updating state:', data.message);
+        }
+    } catch (error) {
+        console.error('Error sending state:', error);
+    }
+}
+
+// Initialize the switch state on page load
+window.onload = fetchState;
+
+// Add event listener to the switch for state changes
+for (let i = 1; i <= 3; i++) {
+    const switchToggle = document.getElementById(`switch-toggle-${i}`);
+    switchToggle.addEventListener('change', function () {
+        const newState = switchToggle.checked ? 'on' : 'off';
+        updateState(i, newState); // Notify the server
+    });
+}
+</script>
+
+</body>
+</html>
