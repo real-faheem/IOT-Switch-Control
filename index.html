@@ -15,8 +15,7 @@
 <div class="switch-container">
     <div class="container-box">
         <div class="switch-1">
-            <label class="switch"> 
-                <p class="switch-1">Switch 1</p>
+            <label class="switch"> <p class="switch-1">Switch 1</p>
                 <input type="checkbox" id="switch-toggle-1">
                 <span class="slider"></span>
             </label>
@@ -25,8 +24,7 @@
     </div>
 
     <div class="switch-2">
-        <label class="switch"> 
-            <p class="switch-1">Switch 2</p>
+        <label class="switch"> <p class="switch-1">Switch 2</p>
             <input type="checkbox" id="switch-toggle-2">
             <span class="slider"></span>
         </label>
@@ -47,12 +45,12 @@
 // Function to fetch the current state from the server
 async function fetchState() {
     try {
-        const response = await fetch('/get_state'); // Fetch state from server
+        const response = await fetch('http://127.0.0.1:9000/get_state'); // Fetch state from server
         const data = await response.json(); // Parse JSON response
 
         // Loop through switches 1, 2, and 3
         for (let i = 1; i <= 3; i++) {
-            const switchState = data[`switch-${i}`]; // State of current switch
+            const switchState = data[`switch_${i}`]; // State of current switch
             const stateDisplay = document.getElementById(`state-display-${i}`);
             const switchToggle = document.getElementById(`switch-toggle-${i}`);
 
@@ -77,10 +75,10 @@ async function fetchState() {
 // Function to send updated state to the server
 async function updateState(switchId, newState) {
     try {
-        const response = await fetch('/toggle', {
+        const response = await fetch('http://127.0.0.1:9000/toggle', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ switch_id: switchId, state: newState }),
+            body: JSON.stringify({ switch_id: `switch_${switchId}`, state: newState }), // Send as switch_1, switch_2, etc.
         });
         const data = await response.json();
         if (data.status === 'success') {
@@ -106,6 +104,7 @@ for (let i = 1; i <= 3; i++) {
         updateState(i, newState); // Notify the server
     });
 }
+
 </script>
 
 </body>
