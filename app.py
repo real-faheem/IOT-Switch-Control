@@ -15,6 +15,10 @@ switch_state = {
     "switch_3": "off"
 }
 
+# Specify the path to the HTML file
+HTML_FILE_PATH = os.path.join(os.path.dirname(__file__), 'IOTSWITCH-MAIN', 'new.html')
+
+
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self, status_code=200):
         """Set common headers."""
@@ -37,7 +41,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             # Serve the HTML page (your separate HTML file)
             try:
                 # Open the HTML file and send it as a response
-                with open('your_html_file.html', 'r') as file:
+                with open(HTML_FILE_PATH, 'r') as file:
                     html_content = file.read()
                     self._set_headers(200)
                     self.wfile.write(html_content.encode())
