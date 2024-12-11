@@ -15,15 +15,14 @@ switch_state = {
     "switch_3": "off"
 }
 
-# Specify the path to the HTML file
-HTML_FILE_PATH = os.path.join(os.path.dirname(__file__), 'IOTSWITCH-MAIN', 'new.html')
-
+# Specify the path to the HTML file located in "d:/newproject"
+HTML_FILE_PATH = "D:/newproject/index.html"  # Adjust the path to match your actual location   
 
 class RequestHandler(BaseHTTPRequestHandler):
-    def _set_headers(self, status_code=200):
+    def _set_headers(self, content_type="application/json", status_code=200):
         """Set common headers."""
         self.send_response(status_code)
-        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Type", content_type)
         self.end_headers()
 
     def do_GET(self):
@@ -35,22 +34,25 @@ class RequestHandler(BaseHTTPRequestHandler):
                 "switch_2": switch_state["switch_2"],
                 "switch_3": switch_state["switch_3"]
             }
-            self._set_headers()
+            self._set_headers("application/json")
             self.wfile.write(json.dumps(response).encode())
         elif self.path == "/":
             # Serve the HTML page (your separate HTML file)
             try:
-                # Open the HTML file and send it as a response
-                with open(HTML_FILE_PATH, 'r') as file:
+                print(f"Trying to serve HTML from: {HTML_FILE_PATH}")
+                with open(HTML_FILE_PATH, 'r', encoding='utf-8') as file:
                     html_content = file.read()
-                    self._set_headers(200)
-                    self.wfile.write(html_content.encode())
+                    self._set_headers("text/html; charset=UTF-8", 200)  # Set the correct content type for HTML
+                    self.wfile.write(html_content.encode('utf-8'))
             except FileNotFoundError:
-                self._set_headers(404)
+                self._set_headers("application/json", 404)
                 self.wfile.write(json.dumps({"error": "HTML file not found"}).encode())
+            except Exception as e:
+                self._set_headers("application/json", 500)
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
         else:
             # Handle unknown routes
-            self._set_headers(404)
+            self._set_headers("application/json", 404)
             self.wfile.write(json.dumps({"error": "Route not found"}).encode())
 
     def do_POST(self):
@@ -78,23 +80,23 @@ class RequestHandler(BaseHTTPRequestHandler):
                     try:
                         response = requests.post(POST_URL, json=payload)
                         server_response = response.text
-                        self._set_headers()
+                        self._set_headers("application/json")
                         self.wfile.write(json.dumps({
                             "status": "success",
                             "response": server_response,
                             "switch_state": switch_state[switch_id]
                         }).encode())
                     except requests.exceptions.RequestException as e:
-                        self._set_headers(500)
+                        self._set_headers("application/json", 500)
                         self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode())
                 else:
                     raise ValueError("Invalid payload")
             except (json.JSONDecodeError, ValueError) as e:
-                self._set_headers(400)
+                self._set_headers("application/json", 400)
                 self.wfile.write(json.dumps({"status": "error", "message": "Invalid payload"}).encode())
         else:
             # Handle unknown routes
-            self._set_headers(404)
+            self._set_headers("application/json", 404)
             self.wfile.write(json.dumps({"error": "Route not found"}).encode())
 
 # Run the server
