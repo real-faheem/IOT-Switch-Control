@@ -16,7 +16,7 @@ switch_state = {
 }
 
 # Specify the path to the HTML file located in "d:/newproject"
-HTML_FILE_PATH = "D:/newproject/index.html"  # Adjust the path to match your actual location   
+HTML_FILE_PATH = "/var/www/html/iot/iot-control-2/index.html"  # Adjust the path to match your actual location   
 
 class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self, content_type="application/json", status_code=200):
