@@ -9,192 +9,158 @@
             font-family: Arial, sans-serif;
             padding: 50px;
             background-color: #f4f4f4;
+            text-align: center;
         }
 
         .switch-container {
             display: flex;
-            gap: 80px;
-            flex-direction: row;
             justify-content: center;
-            margin-top: 90px;
+            gap: 50px;
+            flex-wrap: wrap;
+            margin-top: 30px;
         }
 
-        .switch {
-            --button-width: 3.5em;
-            --button-height: 2em;
-            --toggle-diameter: 1.5em;
-            --button-toggle-offset: calc((var(--button-height) - var(--toggle-diameter)) / 2);
-            --toggle-shadow-offset: 10px;
-            --toggle-wider: 3em;
-            --color-grey: #cccccc;
-            --color-green: #000000;
+        .switch-box {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            width: 150px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .slider {
-            display: inline-block;
-            width: var(--button-width);
-            height: var(--button-height);
-            background-color: var(--color-grey);
-            border-radius: calc(var(--button-height) / 2);
             position: relative;
-            transition: 0.5s all ease-in-out;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+            background-color: #ccc;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease-in-out;
         }
 
         .slider::after {
             content: "";
-            display: inline-block;
-            width: var(--toggle-diameter);
-            height: var(--toggle-diameter);
-            background-color: #fff;
-            border-radius: calc(var(--toggle-diameter) / 2);
             position: absolute;
-            top: var(--button-toggle-offset);
-            transform: translateX(var(--button-toggle-offset));
-            box-shadow: var(--toggle-shadow-offset) 0 calc(var(--toggle-shadow-offset) * 4) rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 5px;
+            transform: translateY(-50%);
             transition: 0.3s all ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .switch input[type="checkbox"]:checked + .slider {
-            background-color: var(--color-green);
+        input[type="checkbox"]:checked + .slider {
+            background-color: #4caf50;
         }
 
-        .switch input[type="checkbox"]:checked + .slider::after {
-            transform: translateX(calc(var(--button-width) - var(--toggle-diameter) - var(--button-toggle-offset)));
-            box-shadow: calc(var(--toggle-shadow-offset) * -1) 0 calc(var(--toggle-shadow-offset) * 4) rgba(0, 0, 0, 0.1);
+        input[type="checkbox"]:checked + .slider::after {
+            transform: translateY(-50%) translateX(25px);
         }
 
-        .switch input[type="checkbox"] {
+        input[type="checkbox"] {
             display: none;
         }
 
-        .switch input[type="checkbox"]:active + .slider::after {
-            width: var(--toggle-wider);
+        .status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
         }
 
-        .switch input[type="checkbox"]:checked:active + .slider::after {
-            transform: translateX(calc(var(--button-width) - var(--toggle-wider) - var(--button-toggle-offset)));
-        }
-
-        .Title {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            text-align: center;
-            position: relative;
-        }
-
-        .subtitle {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            text-align: center;
-            position: relative;
-        }
-
-        .switch-1, .switch-2, .switch-3 {
-            border: #000000;
-            border-width: 10px;
-            border-radius: 30px;
-            position: relative;
+        .error {
+            color: red;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
+    <h1>IoT Switch Control</h1>
+    <p>Toggle the switches to update their state.</p>
+    <div id="error-message" class="error"></div>
 
-<h1 class="Title">IoT Switch Control</h1>
-<p class="subtitle">Toggle the switch to update the state.</p>
-
-<!-- Switch Toggle -->
-<div class="switch-container">
-    <div class="container-box">
-        <div class="switch-1">
-            <label class="switch"> <p class="switch-1">Switch 1</p>
+    <div class="switch-container">
+        <div class="switch-box">
+            <label>
+                <p>Switch 1</p>
                 <input type="checkbox" id="switch-toggle-1">
                 <span class="slider"></span>
             </label>
-            <p class="status">Current State: <span id="state-display-1">Loading...</span></p>
+            <p class="status">State: <span id="state-display-1">Loading...</span></p>
+        </div>
+        <div class="switch-box">
+            <label>
+                <p>Switch 2</p>
+                <input type="checkbox" id="switch-toggle-2">
+                <span class="slider"></span>
+            </label>
+            <p class="status">State: <span id="state-display-2">Loading...</span></p>
+        </div>
+        <div class="switch-box">
+            <label>
+                <p>Switch 3</p>
+                <input type="checkbox" id="switch-toggle-3">
+                <span class="slider"></span>
+            </label>
+            <p class="status">State: <span id="state-display-3">Loading...</span></p>
         </div>
     </div>
 
-    <div class="switch-2">
-        <label class="switch"> <p class="switch-1">Switch 2</p>
-            <input type="checkbox" id="switch-toggle-2">
-            <span class="slider"></span>
-        </label>
-        <p class="status">Current State: <span id="state-display-2">Loading...</span></p>
-    </div>
+    <script>
+        const serverUrl = "SERVER_IP = http://167.71.237.12:8000";
 
-    <div class="switch-3">
-        <p class="switch-1">Switch 3</p>
-        <label class="switch">
-            <input type="checkbox" id="switch-toggle-3">
-            <span class="slider"></span>
-        </label>
-        <p class="status">Current State: <span id="state-display-3">Loading...</span></p>
-    </div>
-</div>
+        async function fetchState() {
+            try {
+                const response = await fetch(`${serverUrl}/get_state`);
+                if (!response.ok) throw new Error("Failed to fetch states.");
+                const data = await response.json();
 
-<script>
-// Function to fetch the current state from the server
-async function fetchState() {
-    try {
-        const response = await fetch('http://167.71.237.12:9000/get_state'); // Fetch state from server
-        const data = await response.json(); // Parse JSON response
+                for (let i = 1; i <= 3; i++) {
+                    const switchState = data[`switch_${i}`];
+                    const stateDisplay = document.getElementById(`state-display-${i}`);
+                    const switchToggle = document.getElementById(`switch-toggle-${i}`);
 
-        // Loop through switches 1, 2, and 3
-        for (let i = 1; i <= 3; i++) {
-            const switchState = data[`switch_${i}`]; // State of current switch
-            const stateDisplay = document.getElementById(`state-display-${i}`);
-            const switchToggle = document.getElementById(`switch-toggle-${i}`);
-
-            if (stateDisplay && switchToggle) {
-                stateDisplay.textContent = switchState; // Update display
-                switchToggle.checked = switchState === 'on'; // Update toggle
+                    stateDisplay.textContent = switchState;
+                    switchToggle.checked = switchState === "on";
+                }
+            } catch (error) {
+                document.getElementById("error-message").textContent = "Error fetching switch states.";
             }
         }
-    } catch (error) {
-        console.error('Error fetching initial state:', error);
 
-        // Handle error for all switches
-        for (let i = 1; i <= 3; i++) {
-            const stateDisplay = document.getElementById(`state-display-${i}`);
-            if (stateDisplay) {
-                stateDisplay.textContent = 'Error fetching state';
+        async function updateState(switchId, newState) {
+            try {
+                const response = await fetch(`${serverUrl}/toggle`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ switch_id: `switch_${switchId}`, state: newState }),
+                });
+                const data = await response.json();
+                if (data.status !== "success") throw new Error(data.message);
+
+                const stateDisplay = document.getElementById(`state-display-${switchId}`);
+                stateDisplay.textContent = data.switch_state;
+            } catch (error) {
+                alert(`Error updating switch ${switchId}: ${error.message}`);
             }
         }
-    }
-}
 
-// Function to send updated state to the server
-async function updateState(switchId, newState) {
-    try {
-        const response = await fetch('http://167.71.237.12:9000/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ switch_id: `switch_${switchId}`, state: newState }), // Send as switch_1, switch_2, etc.
-        });
-        const data = await response.json();
-        if (data.status === 'success') {
-            console.log(`Switch ${switchId} state updated successfully:`, data.switch_state);
-            const stateDisplay = document.getElementById(`state-display-${switchId}`);
-            stateDisplay.textContent = data.switch_state;
-        } else {
-            console.error('Error updating state:', data.message);
-        }
-    } catch (error) {
-        console.error('Error sending state:', error);
-    }
-}
+        window.onload = () => {
+            fetchState();
 
-// Initialize the switch state on page load
-window.onload = fetchState;
-
-// Add event listener to the switch for state changes
-for (let i = 1; i <= 3; i++) {
-    const switchToggle = document.getElementById(`switch-toggle-${i}`);
-    switchToggle.addEventListener('change', function () {
-        const newState = switchToggle.checked ? 'on' : 'off';
-        updateState(i, newState); // Notify the server
-    });
-}
-
-</script>
-
+            for (let i = 1; i <= 3; i++) {
+                const switchToggle = document.getElementById(`switch-toggle-${i}`);
+                switchToggle.addEventListener("change", function () {
+                    const newState = switchToggle.checked ? "on" : "off";
+                    updateState(i, newState);
+                });
+            }
+        };
+    </script>
 </body>
 </html>
