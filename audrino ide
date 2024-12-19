@@ -1,0 +1,87 @@
+#include <WiFi.h>
+
+// Replace with your network credentials
+const char* ssid = "kishore";
+const char* password = "123456789";
+
+// Define LED pin
+#define LED_PIN 2  // GPIO 2 is often the onboard LED on ESP32
+
+// Create a WiFiServer instance on port 80
+WiFiServer server(80);
+
+// Variable to track LED state
+bool ledState = false;
+
+void setup() {
+  // Initialize the LED pin
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+
+  // Start Serial Monitor
+  Serial.begin(115200);
+  Serial.println("ESP32 LED Control Web Server");
+
+  // Connect to Wi-Fi
+  Serial.print("Connecting to Wi-Fi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  // Wi-Fi connected
+  Serial.println("\nConnected to Wi-Fi!");
+  
+  // Print Wi-Fi details
+  Serial.print("IP Address: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("Subnet Mask: ");
+  Serial.println(WiFi.subnetMask());
+  Serial.print("Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+  Serial.print("MAC Address: ");
+  Serial.println(WiFi.macAddress());
+
+  // Start the server
+  server.begin();
+  Serial.println("Server started. Access the web page at the above IP address.");
+}
+
+void loop() {
+  // Check if a client has connected
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+
+  Serial.println("New client connected");
+  String request = client.readStringUntil('\r');
+  Serial.println(request);
+
+  // Check if the button was pressed
+  if (request.indexOf("/LED=ON") != -1) {
+    ledState = true;
+    digitalWrite(LED_PIN, HIGH);
+  } else if (request.indexOf("/LED=OFF") != -1) {
+    ledState = false;
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  // Send the response
+  String html = "<!DOCTYPE html><html>";
+  html += "<head><title>ESP32 LED Control</title></head>";
+  html += "<body style='text-align:center;'>";
+  html += "<h1>ESP32 LED Control</h1>";
+  html += ledState ? "<p>LED is ON</p>" : "<p>LED is OFF</p>";
+  html += "<button onclick=\"location.href='/LED=ON'\">Turn LED ON</button><br><br>";
+  html += "<button onclick=\"location.href='/LED=OFF'\">Turn LED OFF</button>";
+  html += "</body></html>";
+
+  client.print("HTTP/1.1 200 OK\r\n");
+  client.print("Content-Type: text/html\r\n");
+  client.print("Connection: close\r\n\r\n");
+  client.print(html);
+  client.stop();
+  Serial.println("Client disconnected");
+}
