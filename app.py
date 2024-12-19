@@ -1,5 +1,4 @@
 import json
-import os
 import requests
 from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler
