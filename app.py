@@ -39,6 +39,7 @@ class ToggleHandler(tornado.web.RequestHandler):
             switch_id = data.get("switch_id")
             state = data.get("state")
 
+            # Validate switch_id
             if switch_id not in ["switch_1", "switch_2", "switch_3"]:
                 self.write({"status": "error", "message": "Invalid switch_id"})
                 return
