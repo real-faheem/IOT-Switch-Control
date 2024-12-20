@@ -3,100 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Switch Control</title>
+    <title>IoT Switch Control</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    
     <style>
+        /* General page styling */
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Header styling */
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Switch container styling */
+        div {
+            background-color: #fff;
             padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 300px;
+            text-align: center;
         }
-        #switchStatus {
-            font-size: 1.5em;
-            margin-top: 20px;
-        }
-        button {
-            padding: 10px 20px;
+
+        /* Styling for switch status */
+        h3 {
             font-size: 1.2em;
-            margin-top: 20px;
-            cursor: pointer;
-            border: none;
-            background-color: #4CAF50;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        /* Styling for the status text */
+        span {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        /* Styling for the buttons */
+        button {
+            background-color: #eb0808;
             color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1em;
+            margin: 5px;
             border-radius: 5px;
+            cursor: pointer;
             transition: background-color 0.3s;
         }
+
+        /* Change button color on hover */
         button:hover {
-            background-color: #45a049;
+            background-color: #6f0204;
+        }
+
+        /* Button for turning off switch */
+        button:nth-child(2) {
+            background-color: #13d14f;
+        }
+
+        button:nth-child(2):hover {
+            background-color: #0ee069;
         }
     </style>
-    
-    <script>
-        // Base URL for the Tornado server
-        const BASE_URL = "http://167.71.237.12:8000";
-
-        // Function to fetch the current status of switches
-        async function fetchStatus() {
-            try {
-                const response = await fetch(`${BASE_URL}/toggle`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch status");
-                }
-                const data = await response.json();
-                document.getElementById('switch1-status').textContent = data.switch1 ? "ON" : "OFF";
-                document.getElementById('switch2-status').textContent = data.switch2 ? "ON" : "OFF";
-                document.getElementById('switch3-status').textContent = data.switch3 ? "ON" : "OFF";
-            } catch (error) {
-                console.error("Error fetching switch status:", error);
-                alert("Could not fetch switch status. Please check the server connection.");
-            }
-        }
-
-        // Function to toggle a specific switch
-        async function toggleSwitch(switchName) {
-            try {
-                const response = await fetch(`${BASE_URL}/toggle`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ switch: switchName })
-                });
-                if (!response.ok) {
-                    throw new Error("Failed to toggle switch");
-                }
-                const data = await response.json();
-                if (data.status === "success") {
-                    fetchStatus(); // Refresh statuses after toggling
-                } else {
-                    console.error("Error toggling switch:", data.message);
-                    alert("Error toggling the switch: " + data.message);
-                }
-            } catch (error) {
-                console.error("Error toggling switch:", error);
-                alert("Could not toggle the switch. Please check the server connection.");
-            }
-        }
-
-        // Fetch statuses on page load
-        window.onload = fetchStatus;
-    </script>
 </head>
 <body>
-    <h1>Switch Control Panel</h1>
-
+    <h1>IoT Switch Control</h1>
+    
     <div>
-        <p>Switch 1: <span id="switch1-status">Loading...</span></p>
-        <button onclick="toggleSwitch('switch1')">Toggle Switch 1</button>
+        <h3>Switch 1: <span id="status1">Unknown</span></h3>
+        <button onclick="toggleSwitch('switch_1', 'on')">Turn ON</button>
+        <button onclick="toggleSwitch('switch_1', 'off')">Turn OFF</button>
     </div>
-
+    
     <div>
-        <p>Switch 2: <span id="switch2-status">Loading...</span></p>
-        <button onclick="toggleSwitch('switch2')">Toggle Switch 2</button>
+        <h3>Switch 2: <span id="status2">Unknown</span></h3>
+        <button onclick="toggleSwitch('switch_2', 'on')">Turn ON</button>
+        <button onclick="toggleSwitch('switch_2', 'off')">Turn OFF</button>
     </div>
-
+    
     <div>
-        <p>Switch 3: <span id="switch3-status">Loading...</span></p>
-        <button onclick="toggleSwitch('switch3')">Toggle Switch 3</button>
+        <h3>Switch 3: <span id="status3">Unknown</span></h3>
+        <button onclick="toggleSwitch('switch_3', 'on')">Turn ON</button>
+        <button onclick="toggleSwitch('switch_3', 'off')">Turn OFF</button>
     </div>
+    
+    <script>
+        // Fetch current status of all switches on page load
+        window.onload = async function() {
+            try {
+                const response = await fetch("http://167.71.237.12:8000/toggle", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+                const data = await response.json();
+
+                // Update switch status in the UI
+                document.getElementById("status1").innerText = data.switch1 || "Unknown";
+                document.getElementById("status2").innerText = data.switch2 || "Unknown";
+                document.getElementById("status3").innerText = data.switch3 || "Unknown";
+
+                console.log(data);
+            } catch (error) {
+                console.error("Error fetching status:", error);
+            }
+        };
+
+        // Toggle switch status (POST request)
+        async function toggleSwitch(switchId, state) {
+            try {
+                const response = await fetch("http://167.71.237.12:8000/toggle", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        switch_id: switchId,
+                        state: state
+                    })
+                });
+
+                const data = await response.json();
+
+                // Display the status of the switch in the UI
+                if (switchId === 'switch_1') {
+                    document.getElementById("status1").innerText = data.status || "Unknown";
+                } else if (switchId === 'switch_2') {
+                    document.getElementById("status2").innerText = data.status || "Unknown";
+                } else if (switchId === 'switch_3') {
+                    document.getElementById("status3").innerText = data.status || "Unknown";
+                }
+
+                console.log(data); // Handle the response from the server
+            } catch (error) {
+                console.error("Error toggling switch:", error);
+            }
+        }
+    </script>
 </body>
 </html>
