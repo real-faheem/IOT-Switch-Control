@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IoT Switch Control</title>
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <style>
         /* General page styling */
         body {
@@ -51,7 +50,7 @@
 
         /* Styling for the buttons */
         button {
-            background-color: #eb0808;
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -64,16 +63,16 @@
 
         /* Change button color on hover */
         button:hover {
-            background-color: #6f0204;
+            background-color: #218838;
         }
 
         /* Button for turning off switch */
         button:nth-child(2) {
-            background-color: #13d14f;
+            background-color: #dc3545;
         }
 
         button:nth-child(2):hover {
-            background-color: #0ee069;
+            background-color: #c82333;
         }
     </style>
 </head>
@@ -102,7 +101,7 @@
         // Fetch current status of all switches on page load
         window.onload = async function() {
             try {
-                const response = await fetch("http://167.71.237.12:8000/toggle", {
+                const response = await fetch("http://167.71.237.12:8000/get-status", {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json"
@@ -124,7 +123,7 @@
         // Toggle switch status (POST request)
         async function toggleSwitch(switchId, state) {
             try {
-                const response = await fetch("http://167.71.237.12:8000/toggle", {
+                const response = await fetch("http://167.71.237.12:8000/set-status", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
