@@ -5,7 +5,7 @@ from tornado import escape
 import json
 
 # IP address of the ESP32 server
-SERVER_IP = "http://167.71.237.12:9000"
+SERVER_IP = "http://167.71.237.12:9000"  # Ensure that this is the correct address of the ESP32
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -13,12 +13,14 @@ class MainHandler(tornado.web.RequestHandler):
         self.render("index.html")
 
 class ToggleHandler(tornado.web.RequestHandler):
+    # Fetch the current status of switches from the ESP32 server (GET request)
     async def get(self):
-        # Fetch the current status of switches from the ESP32 server
         client = tornado.httpclient.AsyncHTTPClient()
         try:
+            # Send GET request to fetch switch status from ESP32
             response = await client.fetch(f"{SERVER_IP}/status")
             data = escape.json_decode(response.body)
+            
             # Send back the status of all switches
             self.write({
                 "switch1": data.get('switch1', "unknown"),
@@ -32,9 +34,10 @@ class ToggleHandler(tornado.web.RequestHandler):
             print(f"Error: {e}")
             self.write({"status": "error", "message": str(e)})
 
+    # Toggle switch state (POST request)
     async def post(self):
-        # Get the JSON body data
         try:
+            # Parse the JSON body data
             data = json.loads(self.request.body.decode('utf-8'))
             switch_id = data.get("switch_id")
             state = data.get("state")
@@ -44,15 +47,19 @@ class ToggleHandler(tornado.web.RequestHandler):
                 self.write({"status": "error", "message": "Invalid switch_id"})
                 return
             
-            # Map switch_id to its toggle URL
-            toggle_url = f"{SERVER_IP}/{switch_id}/{state}"
+            # Map switch_id to its toggle URL for ESP32
+            toggle_url = f"{SERVER_IP}/set-status"
 
+            # Send POST request to ESP32 to toggle the switch
             client = tornado.httpclient.AsyncHTTPClient()
+            payload = {
+                "switch_id": switch_id,
+                "state": state
+            }
             try:
-                # Send POST request to ESP32 to toggle the switch
-                response = await client.fetch(toggle_url, method="POST")
-                data = escape.json_decode(response.body)
-                self.write({"status": data.get('status', 'success')})
+                response = await client.fetch(toggle_url, method="POST", body=json.dumps(payload), headers={'Content-Type': 'application/json'})
+                response_data = escape.json_decode(response.body)
+                self.write({"status": response_data.get('status', 'success')})
             except tornado.httpclient.HTTPError as e:
                 print(f"HTTPError: {e}")
                 self.write({"status": "error", "message": str(e)})
@@ -60,19 +67,21 @@ class ToggleHandler(tornado.web.RequestHandler):
                 print(f"Error: {e}")
                 self.write({"status": "error", "message": str(e)})
 
+        except json.JSONDecodeError:
+            self.write({"status": "error", "message": "Invalid JSON format"})
         except Exception as e:
             print(f"Error parsing request body: {e}")
-            self.write({"status": "error", "message": "Invalid JSON format"})
+            self.write({"status": "error", "message": "An error occurred"})
 
 def make_app():
-    # Define the routes
+    # Define the routes for the application
     return tornado.web.Application([
-        (r"/", MainHandler),
-        (r"/toggle", ToggleHandler),
+        (r"/", MainHandler),  # Route for rendering the HTML page
+        (r"/toggle", ToggleHandler),  # Route for handling switch toggles (both GET and POST)
     ])
 
 if __name__ == "__main__":
     app = make_app()
-    app.listen(9000)  # Run the server on port 9000
-    print("Server is running on port 9000")
+    app.listen(9000)  # Run the Tornado server on port 9000
+    print("Server is running on http://167.71.237.12:9000")
     tornado.ioloop.IOLoop.current().start()
