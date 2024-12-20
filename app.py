@@ -2,6 +2,7 @@ import tornado.ioloop
 import tornado.web
 import tornado.httpclient
 from tornado import escape
+import json
 
 # IP address of the ESP32 server
 SERVER_IP = "http://167.71.237.12:9000"
@@ -32,27 +33,35 @@ class ToggleHandler(tornado.web.RequestHandler):
             self.write({"status": "error", "message": str(e)})
 
     async def post(self):
-        # Toggle a specific switch based on the input argument
-        switch = self.get_argument("switch", None)
-        if switch not in ["switch1", "switch2", "switch3"]:
-            self.write({"status": "error", "message": "Invalid switch name"})
-            return
-
-        # Map switch to its toggle URL
-        toggle_url = f"{SERVER_IP}/{switch}"
-
-        client = tornado.httpclient.AsyncHTTPClient()
+        # Get the JSON body data
         try:
-            # Send POST request to ESP32 to toggle the switch
-            response = await client.fetch(toggle_url, method="POST")
-            data = escape.json_decode(response.body)
-            self.write({"status": data.get('status', 'success')})
-        except tornado.httpclient.HTTPError as e:
-            print(f"HTTPError: {e}")
-            self.write({"status": "error", "message": str(e)})
+            data = json.loads(self.request.body.decode('utf-8'))
+            switch_id = data.get("switch_id")
+            state = data.get("state")
+
+            if switch_id not in ["switch_1", "switch_2", "switch_3"]:
+                self.write({"status": "error", "message": "Invalid switch_id"})
+                return
+            
+            # Map switch_id to its toggle URL
+            toggle_url = f"{SERVER_IP}/{switch_id}/{state}"
+
+            client = tornado.httpclient.AsyncHTTPClient()
+            try:
+                # Send POST request to ESP32 to toggle the switch
+                response = await client.fetch(toggle_url, method="POST")
+                data = escape.json_decode(response.body)
+                self.write({"status": data.get('status', 'success')})
+            except tornado.httpclient.HTTPError as e:
+                print(f"HTTPError: {e}")
+                self.write({"status": "error", "message": str(e)})
+            except Exception as e:
+                print(f"Error: {e}")
+                self.write({"status": "error", "message": str(e)})
+
         except Exception as e:
-            print(f"Error: {e}")
-            self.write({"status": "error", "message": str(e)})
+            print(f"Error parsing request body: {e}")
+            self.write({"status": "error", "message": "Invalid JSON format"})
 
 def make_app():
     # Define the routes
