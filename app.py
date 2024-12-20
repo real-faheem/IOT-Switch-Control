@@ -1,103 +1,68 @@
-import json
-import requests
-from tornado.ioloop import IOLoop
-from tornado.web import Application, RequestHandler
+import tornado.ioloop
+import tornado.web
+import tornado.httpclient
+from tornado import escape
 
-# Server Configuration
-SERVER_IP = "http://167.71.237.12"
-SERVER_PORT = "9000"
-POST_URL = f"{SERVER_IP}:{SERVER_PORT}/api/receive"
+# IP address of the ESP32 server
+SERVER_IP = "http://167.71.237.12:9000"
 
-# Store switch state globally for simplicity
-switch_state = {
-    "switch_1": "off",
-    "switch_2": "off",
-    "switch_3": "off"
-}
-
-# Specify the path to the HTML file
-HTML_FILE_PATH = "/var/www/html/iot/iot-control-2/index.html"
-
-class GetStateHandler(RequestHandler):
-    """Handler for returning the current state of switches."""
+class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        response = {
-            "switch_1": switch_state["switch_1"],
-            "switch_2": switch_state["switch_2"],
-            "switch_3": switch_state["switch_3"]
-        }
-        self.set_header("Content-Type", "application/json")
-        self.write(json.dumps(response))
+        # Render the main HTML page
+        self.render("index.html")
 
-class HTMLHandler(RequestHandler):
-    """Handler for serving the HTML file."""
+class ToggleHandler(tornado.web.RequestHandler):
     async def get(self):
+        # Fetch the current status of switches from the ESP32 server
+        client = tornado.httpclient.AsyncHTTPClient()
         try:
-            print(f"Trying to serve HTML from: {HTML_FILE_PATH}")
-            with open(HTML_FILE_PATH, 'r', encoding='utf-8') as file:
-                html_content = file.read()
-                self.set_header("Content-Type", "text/html; charset=UTF-8")
-                self.write(html_content)
-        except FileNotFoundError:
-            self.set_status(404)
-            self.write({"error": "HTML file not found"})
+            response = await client.fetch(f"{SERVER_IP}/status")
+            data = escape.json_decode(response.body)
+            # Send back the status of all switches
+            self.write({
+                "switch1": data.get('switch1', "unknown"),
+                "switch2": data.get('switch2', "unknown"),
+                "switch3": data.get('switch3', "unknown")
+            })
+        except tornado.httpclient.HTTPError as e:
+            print(f"HTTPError: {e}")
+            self.write({"status": "error", "message": str(e)})
         except Exception as e:
-            self.set_status(500)
-            self.write({"error": str(e)})
+            print(f"Error: {e}")
+            self.write({"status": "error", "message": str(e)})
 
-class ToggleHandler(RequestHandler):
-    """Handler for toggling the switch state."""
     async def post(self):
+        # Toggle a specific switch based on the input argument
+        switch = self.get_argument("switch", None)
+        if switch not in ["switch1", "switch2", "switch3"]:
+            self.write({"status": "error", "message": "Invalid switch name"})
+            return
+
+        # Map switch to its toggle URL
+        toggle_url = f"{SERVER_IP}/{switch}"
+
+        client = tornado.httpclient.AsyncHTTPClient()
         try:
-            # Parse the request body
-            data = json.loads(self.request.body)
-            switch_id = data.get("switch_id")
-            new_state = data.get("state")
-
-            if switch_id and new_state in ["on", "off"]:
-                # Update the state of the switch
-                switch_state[switch_id] = new_state
-                payload = {
-                    "switch_id": switch_id,
-                    "switch_state": new_state
-                }
-
-                # Simulate sending data to an external server
-                try:
-                    response = requests.post(POST_URL, json=payload)
-                    server_response = response.text
-                    self.set_header("Content-Type", "application/json")
-                    self.write(json.dumps({
-                        "status": "success",
-                        "response": server_response,
-                        "switch_state": switch_state[switch_id]
-                    }))
-                except requests.exceptions.RequestException as e:
-                    self.set_status(500)
-                    self.write({"status": "error", "message": str(e)})
-            else:
-                raise ValueError("Invalid payload")
-        except (json.JSONDecodeError, ValueError):
-            self.set_status(400)
-            self.write({"status": "error", "message": "Invalid payload"})
-
-class NotFoundHandler(RequestHandler):
-    """Handler for undefined routes."""
-    def prepare(self):
-        self.set_status(404)
-        self.write({"error": "Route not found"})
+            # Send POST request to ESP32 to toggle the switch
+            response = await client.fetch(toggle_url, method="POST")
+            data = escape.json_decode(response.body)
+            self.write({"status": data.get('status', 'success')})
+        except tornado.httpclient.HTTPError as e:
+            print(f"HTTPError: {e}")
+            self.write({"status": "error", "message": str(e)})
+        except Exception as e:
+            print(f"Error: {e}")
+            self.write({"status": "error", "message": str(e)})
 
 def make_app():
-    """Create the Tornado application."""
-    return Application([
-        (r"/get_state", GetStateHandler),
-        (r"/", HTMLHandler),
+    # Define the routes
+    return tornado.web.Application([
+        (r"/", MainHandler),
         (r"/toggle", ToggleHandler),
-        (r".*", NotFoundHandler)  # Catch-all for undefined routes
     ])
 
 if __name__ == "__main__":
     app = make_app()
-    app.listen(9000)  # Run on port 9000
-    print("Tornado server running on port 9000...")
-    IOLoop.current().start()
+    app.listen(9000)  # Run the server on port 9000
+    print("Server is running on port 9000")
+    tornado.ioloop.IOLoop.current().start()
