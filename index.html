@@ -3,153 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IoT Switch Control</title>
+    <title>Switch Control</title>
     <style>
-        /* General page styling */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
         }
-
-        /* Header styling */
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        /* Switch container styling */
-        div {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            width: 300px;
-            text-align: center;
-        }
-
-        /* Styling for switch status */
-        h3 {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            color: #555;
-        }
-
-        /* Styling for the status text */
-        span {
-            font-weight: bold;
-            color: #007bff;
-        }
-
-        /* Styling for the buttons */
-        button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1em;
-            margin: 5px;
+        .switch-container {
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
             border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .switch-container button {
+            padding: 10px;
+            border: none;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
-
-        /* Change button color on hover */
-        button:hover {
-            background-color: #218838;
+        .switch-container button.on {
+            background-color: #4CAF50;
+            color: white;
         }
-
-        /* Button for turning off switch */
-        button:nth-child(2) {
-            background-color: #dc3545;
-        }
-
-        button:nth-child(2):hover {
-            background-color: #c82333;
+        .switch-container button.off {
+            background-color: #f44336;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <h1>IoT Switch Control</h1>
-    
-    <div>
-        <h3>Switch 1: <span id="status1">Unknown</span></h3>
-        <button onclick="toggleSwitch('switch_1', 'on')">Turn ON</button>
-        <button onclick="toggleSwitch('switch_1', 'off')">Turn OFF</button>
-    </div>
-    
-    <div>
-        <h3>Switch 2: <span id="status2">Unknown</span></h3>
-        <button onclick="toggleSwitch('switch_2', 'on')">Turn ON</button>
-        <button onclick="toggleSwitch('switch_2', 'off')">Turn OFF</button>
-    </div>
-    
-    <div>
-        <h3>Switch 3: <span id="status3">Unknown</span></h3>
-        <button onclick="toggleSwitch('switch_3', 'on')">Turn ON</button>
-        <button onclick="toggleSwitch('switch_3', 'off')">Turn OFF</button>
-    </div>
-    
-    <script>
-        // Fetch current status of all switches on page load
-        window.onload = async function() {
-            try {
-                const response = await fetch("http://167.71.237.12:8000/get-status", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json"
-                    }
-                });
-                const data = await response.json();
 
-                // Update switch status in the UI
-                document.getElementById("status1").innerText = data.switch1 || "Unknown";
-                document.getElementById("status2").innerText = data.switch2 || "Unknown";
-                document.getElementById("status3").innerText = data.switch3 || "Unknown";
+<h1>Control the Switches</h1>
 
-                console.log(data);
-            } catch (error) {
-                console.error("Error fetching status:", error);
+<div id="switch1" class="switch-container">
+    <span>Switch 1:</span>
+    <button class="off" onclick="toggleSwitch('switch1')">OFF</button>
+</div>
+<div id="switch2" class="switch-container">
+    <span>Switch 2:</span>
+    <button class="off" onclick="toggleSwitch('switch2')">OFF</button>
+</div>
+<div id="switch3" class="switch-container">
+    <span>Switch 3:</span>
+    <button class="off" onclick="toggleSwitch('switch3')">OFF</button>
+</div>
+
+<script>
+    // Define the ESP32 IP address here
+    const ESP32_IP = '"http://167.71.237.12":8000';  // Update with your ESP32 IP address
+
+    // Function to toggle switch state
+    function toggleSwitch(switchId) {
+        const currentButton = document.querySelector(`#${switchId} button`);
+        const newState = currentButton.classList.contains('off') ? 'on' : 'off';
+
+        // Send POST request to change the state of the switch
+        fetch(`${ESP32_IP}/set-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `switch_id=${switchId}&state=${newState}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update the button state
+                currentButton.classList.toggle('off');
+                currentButton.classList.toggle('on');
+                currentButton.textContent = newState.toUpperCase();
+            } else {
+                alert('Error toggling the switch');
             }
-        };
+        })
+        .catch(err => {
+            console.error('Error:', err);
+        });
+    }
 
-        // Toggle switch status (POST request)
-        async function toggleSwitch(switchId, state) {
-            try {
-                const response = await fetch("http://167.71.237.12:8000/set-status", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        switch_id: switchId,
-                        state: state
-                    })
-                });
+    // Fetch the current status of switches on page load
+    window.onload = function() {
+        fetch(`${ESP32_IP}/get-status`)
+            .then(response => response.json())
+            .then(data => {
+                updateSwitchStatus('switch1', data.switch1);
+                updateSwitchStatus('switch2', data.switch2);
+                updateSwitchStatus('switch3', data.switch3);
+            })
+            .catch(err => {
+                console.error('Error:', err);
+            });
+    };
 
-                const data = await response.json();
-
-                // Display the status of the switch in the UI
-                if (switchId === 'switch_1') {
-                    document.getElementById("status1").innerText = data.status || "Unknown";
-                } else if (switchId === 'switch_2') {
-                    document.getElementById("status2").innerText = data.status || "Unknown";
-                } else if (switchId === 'switch_3') {
-                    document.getElementById("status3").innerText = data.status || "Unknown";
-                }
-
-                console.log(data); // Handle the response from the server
-            } catch (error) {
-                console.error("Error toggling switch:", error);
-            }
+    // Update switch button state based on the current status
+    function updateSwitchStatus(switchId, state) {
+        const switchButton = document.querySelector(`#${switchId} button`);
+        if (state === 'on') {
+            switchButton.classList.remove('off');
+            switchButton.classList.add('on');
+            switchButton.textContent = 'ON';
+        } else {
+            switchButton.classList.remove('on');
+            switchButton.classList.add('off');
+            switchButton.textContent = 'OFF';
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
