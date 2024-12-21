@@ -1,87 +1,59 @@
 import tornado.ioloop
 import tornado.web
 import tornado.httpclient
-from tornado import escape
 import json
 
-# IP address of the ESP32 server
-SERVER_IP = "http://167.71.237.12:9000"  # Ensure that this is the correct address of the ESP32
+ESP32_IP = "http://167.71.237.12"  # Replace with your ESP32 IP address
+
+class SwitchStatusHandler(tornado.web.RequestHandler):
+    async def get(self):
+        # Fetch the current switch status from the ESP32
+        client = tornado.httpclient.HTTPClient()
+        try:
+            response = client.fetch(f"http://{ESP32_IP}:9000/get-status")
+            data = json.loads(response.body)
+            self.set_header("Access-Control-Allow-Origin", "*")  # Enable CORS
+            self.write(data)
+        except tornado.httpclient.HTTPError as e:
+            self.set_status(e.code)
+            self.write({"error": "Failed to fetch status from ESP32"})
+
+    async def post(self):
+        # Set the switch status on the ESP32
+        switch_id = self.get_argument("switch_id", None)
+        state = self.get_argument("state", None)
+
+        if switch_id and state:
+            client = tornado.httpclient.HTTPClient()
+            try:
+                response = client.fetch(
+                    f"http://{ESP32_IP}:9000/set-status",
+                    method="POST",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    body=f"switch_id={switch_id}&state={state}"
+                )
+                self.set_header("Access-Control-Allow-Origin", "*")  # Enable CORS
+                result = json.loads(response.body)
+                self.write(result)
+            except tornado.httpclient.HTTPError as e:
+                self.set_status(e.code)
+                self.write({"error": "Failed to change status on ESP32"})
+        else:
+            self.set_status(400)
+            self.write({"error": "Invalid parameters"})
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        # Render the main HTML page
-        self.render("index.html")
-
-class ToggleHandler(tornado.web.RequestHandler):
-    # Fetch the current status of switches from the ESP32 server (GET request)
-    async def get(self):
-        client = tornado.httpclient.AsyncHTTPClient()
-        try:
-            # Send GET request to fetch switch status from ESP32
-            response = await client.fetch(f"{SERVER_IP}/status")
-            data = escape.json_decode(response.body)
-            
-            # Send back the status of all switches
-            self.write({
-                "switch1": data.get('switch1', "unknown"),
-                "switch2": data.get('switch2', "unknown"),
-                "switch3": data.get('switch3', "unknown")
-            })
-        except tornado.httpclient.HTTPError as e:
-            print(f"HTTPError: {e}")
-            self.write({"status": "error", "message": str(e)})
-        except Exception as e:
-            print(f"Error: {e}")
-            self.write({"status": "error", "message": str(e)})
-
-    # Toggle switch state (POST request)
-    async def post(self):
-        try:
-            # Parse the JSON body data
-            data = json.loads(self.request.body.decode('utf-8'))
-            switch_id = data.get("switch_id")
-            state = data.get("state")
-
-            # Validate switch_id
-            if switch_id not in ["switch_1", "switch_2", "switch_3"]:
-                self.write({"status": "error", "message": "Invalid switch_id"})
-                return
-            
-            # Map switch_id to its toggle URL for ESP32
-            toggle_url = f"{SERVER_IP}/set-status"
-
-            # Send POST request to ESP32 to toggle the switch
-            client = tornado.httpclient.AsyncHTTPClient()
-            payload = {
-                "switch_id": switch_id,
-                "state": state
-            }
-            try:
-                response = await client.fetch(toggle_url, method="POST", body=json.dumps(payload), headers={'Content-Type': 'application/json'})
-                response_data = escape.json_decode(response.body)
-                self.write({"status": response_data.get('status', 'success')})
-            except tornado.httpclient.HTTPError as e:
-                print(f"HTTPError: {e}")
-                self.write({"status": "error", "message": str(e)})
-            except Exception as e:
-                print(f"Error: {e}")
-                self.write({"status": "error", "message": str(e)})
-
-        except json.JSONDecodeError:
-            self.write({"status": "error", "message": "Invalid JSON format"})
-        except Exception as e:
-            print(f"Error parsing request body: {e}")
-            self.write({"status": "error", "message": "An error occurred"})
+        self.render("index.html")  # Renders the frontend page
 
 def make_app():
-    # Define the routes for the application
     return tornado.web.Application([
-        (r"/", MainHandler),  # Route for rendering the HTML page
-        (r"/toggle", ToggleHandler),  # Route for handling switch toggles (both GET and POST)
+        (r"/", MainHandler),
+        (r"/switch-status", SwitchStatusHandler),
     ])
 
 if __name__ == "__main__":
     app = make_app()
-    app.listen(9000)  # Run the Tornado server on port 9000
-    print("Server is running on http://167.71.237.12:9000")
+    app.listen(9000)  # Tornado server listens on port 8081
+    print("Server started")
     tornado.ioloop.IOLoop.current().start()
